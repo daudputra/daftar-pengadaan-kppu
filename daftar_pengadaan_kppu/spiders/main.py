@@ -443,5 +443,5 @@ class SpiderSpider(scrapy.Spider):
         local_path = f'D:/Visual Studio Code/Work/magang/kppu/e_procurement/daftar_pengadaan_kppu/daftar_pengadaan_kppu/data/{filename}'
         collected_data['path_data_raw'] = s3
 
-        # save_json(collected_data, filename)
+        save_json(collected_data, filename)
         # upload_to_s3(local_path, s3.replace('s3://', ''))

@@ -10,10 +10,12 @@ import requests
 import scrapy
 import scrapy.resolver
 from datetime import datetime
+import logging
 
 
 class SpiderSpider(scrapy.Spider):
     name = "main"
+    logger = logging.getLogger(__name__)
 
     headers = {
         'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, seperti Gecko) Chrome/125.0.0.0 Safari/537.36",
@@ -153,62 +155,65 @@ class SpiderSpider(scrapy.Spider):
         print(response.status_code)
         try:
             datas = response.json()
-        except:
-            print("Curl expired")
-        value_raw = datas['data']
-        for item in value_raw:
-            kode = item[0]
-            nama_paket = [
-                item[5],
-                item[6],
-                item[7],
-                item[8],
-            ]
-            k_l_p_d_instansi_lainnya= item[2]
-            tahapan = item[3]
-            hps = item[4]   
             
-            spse_raw = item[9]
-            if spse_raw == '1':
-                spse = '3'
-            elif spse_raw == '2':
-                spse = '4'
-            elif spse_raw == '3':
-                spse = '4.3'
-            elif spse_raw == '4':
-                spse = '4.4'
-            elif spse_raw == '5':
-                spse = '4.5'
+            value_raw = datas['data']
+            for item in value_raw:
+                kode = item[0]
+                nama_paket = [
+                    item[5],
+                    item[6],
+                    item[7],
+                    item[8],
+                ]
+                k_l_p_d_instansi_lainnya= item[2]
+                tahapan = item[3]
+                hps = item[4]   
+                
+                spse_raw = item[9]
+                if spse_raw == '1':
+                    spse = '3'
+                elif spse_raw == '2':
+                    spse = '4'
+                elif spse_raw == '3':
+                    spse = '4.3'
+                elif spse_raw == '4':
+                    spse = '4.4'
+                elif spse_raw == '5':
+                    spse = '4.5'
 
-            nilai_kontrak = item[10]
-
-            tahapan_url = f'https://www.lpse.kemenkeu.go.id/eproc4/lelang/{kode}/pengumumanlelang'
-            self.path_s3 = f's3://ai-pipeline-raw-data/data/data_descriptive/kppu/e-procurement/daftar_pengadaan_kppu/json/'
+                nilai_kontrak = item[10]
 
 
-            self.collected_data = {
-                    'link' : 'https://www.lpse.kemenkeu.go.id/eproc4/lelang?kategoriId=&tahun=&instansiId=L32&rekanan=&kontrak_status=&kontrak_tipe=',
-                    'domain' : 'lpse.kemenkeu.go.id',
-                    'crawling_time' : datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    'crawling_time_epoch' : int(datetime.now().timestamp()),
-                    'path_data_raw' : self.path_s3,
-                    'path_data_clean' : None,
-                    'kode':int(kode),
-                    'nama_paket': nama_paket,
-                    'klpd_dan_instansi_lainnya': k_l_p_d_instansi_lainnya,
-                    'tahapan': tahapan,
-                    'hps': hps,
-                    'spse': spse,
-                    'nilai_kontrak': nilai_kontrak,
-                }
-            if tahapan_url:
-                yield scrapy.Request(
-                tahapan_url,
-                callback=self.tender_pengumuman,
-                headers=self.headers,
-                cookies=self.cookies,
-                meta={'collected_data': self.collected_data.copy(), 'kode_api':kode }, 
+                tahapan_url = f'https://www.lpse.kemenkeu.go.id/eproc4/lelang/{kode}/pengumumanlelang'
+                self.path_s3 = f's3://ai-pipeline-raw-data/data/data_descriptive/kppu/e-procurement/daftar_pengadaan_kppu/json/'
+
+
+                self.collected_data = {
+                        'link' : 'https://www.lpse.kemenkeu.go.id/eproc4/lelang?kategoriId=&tahun=&instansiId=L32&rekanan=&kontrak_status=&kontrak_tipe=',
+                        'domain' : 'lpse.kemenkeu.go.id',
+                        'crawling_time' : datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'crawling_time_epoch' : int(datetime.now().timestamp()),
+                        'path_data_raw' : self.path_s3,
+                        'path_data_clean' : None,
+                        'kode':int(kode),
+                        'nama_paket': nama_paket,
+                        'klpd_dan_instansi_lainnya': k_l_p_d_instansi_lainnya,
+                        'tahapan': tahapan,
+                        'hps': hps,
+                        'spse': spse,
+                        'nilai_kontrak': nilai_kontrak,
+                    }
+                if tahapan_url:
+                    yield scrapy.Request(
+                    tahapan_url,
+                    callback=self.tender_pengumuman,
+                    headers=self.headers,
+                    cookies=self.cookies,
+                    meta={'collected_data': self.collected_data.copy(), 'kode_api':kode }, 
                 )
+        except Exception as e:
+            logging.warning(e)
+            logging.warning('Curl Expired')
 
 
     def tender_pengumuman(self, response):
